@@ -3,6 +3,8 @@ library(tidyverse)
 library(tidytext)
 library(ggmap)
 library(dplyr)
+library(tm)
+library(tidytext)
 
 create_token(
   app = "Twitter API String Tracker",
@@ -21,16 +23,46 @@ stream_tweets(
 
 keywords <- parse_stream("candidates.json")
 
-bernie_tweets <- search_tweets("@BernieSanders", n = 100)
-bernie_tweets
+
 
 test<-c("Washington, DC","ACdc","FUCK")
 str_detect(test," DC")
 
+bernie_tweets <- search_tweets("@BernieSanders", n = 10000, verbose = TRUE, retryonratelimit = TRUE)
 
-bernie_tweets <- search_tweets(lang="en",q="@BernieSanders", n = 10000)
-bernie_tweets$IA<-str_detect(bernie_tweets$location," IA") | str_detect(bernie_tweets$location,"Iowa")
-dc_bernie<-bernie_tweets %>% filter(IA=="TRUE")
+all_tweets <- search_tweets(lang="en",q="@BernieSanders OR @ewarren OR @KamalaHarris OR @PeteButtigieg OR @JoeBiden", n = 1000)
+
+bernie_tweets$BS_IA<-(str_detect(bernie_tweets$location," IA") | str_detect(bernie_tweets$location,"Iowa")) & str_detect(bernie_tweets$text,"@BernieSanders")
+
+IA_bernie<-bernie_tweets %>% filter(BS_IA=="TRUE")
+
+
+
+
+tidy_bernie_tweets<- bernie_tweets %>%
+  select(created_at,text) %>%
+  unnest_tokens("word", text)
+
+tidy_bernie_tweets %>%
+  count(word) %>%
+  arrange(desc(n))
+
+data("stop_words")
+tidy_bernie_tweets<-tidy_bernie_tweets %>%
+  anti_join(stop_words)
+
+tidy_bernie_tweets %>%
+  count(word) %>%
+  arrange(desc(n))
+
+bernie_corpus <- Corpus(VectorSource(as.vector(bernie_tweets$text))) 
+bernie_corpus
+
+bernie_corpus <- tm_map(bernie_corpus, removeWords, stopwords("english"))
+
+
+
+sentiments <- analyzeSentiment(as.character(bernie_corpus))
 
 
 #make sure lang=en (english Tweet)
