@@ -28,7 +28,7 @@ keywords <- parse_stream("candidates.json")
 test<-c("Washington, DC","ACdc","FUCK")
 str_detect(test," DC")
 
-bernie_tweets <- search_tweets("@BernieSanders", n = 10000)
+bernie_tweets <- search_tweets("@BernieSanders", n = 10000, verbose = TRUE, retryonratelimit = TRUE)
 
 all_tweets <- search_tweets(lang="en",q="@BernieSanders OR @ewarren OR @KamalaHarris OR @PeteButtigieg OR @JoeBiden", n = 1000)
 
@@ -60,7 +60,7 @@ bernie_corpus
 
 bernie_corpus <- tm_map(bernie_corpus, removeWords, stopwords("english"))
 
-library(SentimentAnalysis)
+
 
 sentiments <- analyzeSentiment(as.character(bernie_corpus))
 
