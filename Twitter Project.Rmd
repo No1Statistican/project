@@ -1,0 +1,48 @@
+---
+title: "Twitter Project"
+author: "FK, VO"
+date: "11/21/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Introduction
+
+Why this project is relevant. Goal. Overview of project.
+
+## 2. Data
+
+Data collected with code below. 
+
+```{r}
+
+```
+
+Data edited with code below to prepare for sentiment analysis.
+
+```{r}
+
+```
+
+## 3. Sentiment analysis
+
+How the data was sentiment-analysed.
+
+```{r}
+
+```
+
+## 4. Results
+
+Outcomes and graphs.
+
+```{r}
+
+```
+
+## 5. Discussion
+
+Takeaways.
