@@ -5,26 +5,68 @@ date: "11/21/2019"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ## 1. Introduction
 
 Why this project is relevant. Goal. Overview of project.
 
+- candidates may need an idea of the trajectory of public opinion sooner than survey results can be returned
+- plan to compare twitter data to survey data 
+- prior efforts to do this
+- similar efforts but not the same
+- twitter data and surveys
+- political twitter data
+- sentiment analysis
+-lower costs, faster results
+
 ## 2. Data
+
+Here we load the necessary libraries for preparation.
+
+```{r}
+library(rtweet)
+library(tidyverse)
+#library(tidytext)
+#library(ggmap)
+#library(dplyr)
+#library(tm)
+#library(tidytext)
+```
 
 Data collected with code below. 
 
 ```{r}
 
+create_token(
+  app = "Twitter Strings",
+  consumer_key = "b6vtg7fUkJuveYECwxR9sXgLu",
+  consumer_secret = "q8ltGT0Db8hMOrwpoF0CfywfTRmoveAuR55ujsGk8MEDRCPifa",
+  access_token = "1193934777465942019-QU3YwvkYfkQIkM6zliyrdUn88Y06sf",
+  access_secret = "p3J6D9h1ILuzFeSZC1OPeaZXsAYX4CxEIsoxaMEdMQiGl"
+)
+
+tweets <- search_tweets(lang="en",q="@BernieSanders OR @ewarren OR @KamalaHarris OR @PeteButtigieg OR @JoeBiden", n = 100)
+
+tweets
 ```
 
 Data edited with code below to prepare for sentiment analysis.
 
-```{r}
+1. remove irrelevant variables: keep: text, created_at, location, description, place_full_name
 
+```{r}
+tweets_tbl <- as_tibble(tweets)
+tweets_tbl
+
+tweets_small <- select(tweets_tbl, c(text, created_at, location, description, place_full_name))
+tweets_small
+```
+
+2. separate into different datasets by candidate and state
+
+```{r}
+strings <- c("CA", "California", "Los Angeles") #we might catch extra tweets using some cities 
+tweets_loc_filter<-filter(tweets_small, str_detect(location, paste(strings, collapse="|")))
+tweets_loc_filter
 ```
 
 ## 3. Sentiment analysis
