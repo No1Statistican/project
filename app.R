@@ -1,7 +1,6 @@
 library(wordcloud)
 library(tidyverse)
 library(tidytext)
-library(janeaustenr)
 library(shinythemes)
 library(shiny)
 
@@ -12,7 +11,11 @@ ui  <- fluidPage(
         sidebarPanel(
             sliderInput('ngramCount', '# of Grams', min = 1, max = 5, value = 1),
             hr(),
-            sliderInput('cloudCount', '# of Words', min = 50, max = 400, value = 100)
+            sliderInput('cloudCount', '# of Words', min = 50, max = 400, value = 100),
+            hr(),
+            selectInput('candidate', 'Choose a candidate:', choices = c('PB', 'KH', 'EW', 'BS', 'JB')),
+            hr(),
+            selectInput('state', 'Choose a state:', choices = c('NV', 'NH', 'SC', 'IA'))
         ),
         mainPanel(
             plotOutput('wordcloud') 
@@ -24,6 +27,10 @@ server  <- function(input, output) {
     ngrams  <- reactive({
         input$ngramCount
     })
+    
+    #tweets_data <- reactive({
+    #    ifelse(input$candidate == 'PB', data = tweets_small[which()]
+    #})
     output$wordcloud  <- renderPlot({
         tweets_small %>%
             select(text) %>%
