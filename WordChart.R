@@ -1,10 +1,14 @@
+#Forest Krueger and Victoria Owens
+
 library(wordcloud)
 library(tidyverse)
 library(tidytext)
 library(shinythemes)
 library(shiny)
 
-#load("tidy_all_tweets_cut.Rda")
+#get data from https://drive.google.com/file/d/1PGEFRaK9IhOyiF2svW_a_OL-ZIAZ_sQO/view
+#word cloud of tweets about leading democtatic 2020 canidates from certain states on Twitter
+load("tidy_all_tweets_cut.Rda")
 
 ui  <- fluidPage(
   theme = shinytheme('yeti'),
@@ -33,7 +37,7 @@ server  <- function(input, output) {
       select(word, CANDIDATE, STATE) %>%
       filter(STATE == input$STATE, CANDIDATE == input$CANDIDATE) %>%
       count(word) %>%
-      with(wordcloud(word, n, max.words=input$cloudCount, rot.per=.2, colors=c("#cde0c9", "#68b2A0", "#2c6975")))
+      with(wordcloud(word, n, max.words=input$cloudCount, rot.per=.2, colors=c("#cde0c9", "#68b2A0", "#2c6975"),height=400,width=600))
   })
 }
 
