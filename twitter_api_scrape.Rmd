@@ -1,0 +1,220 @@
+---
+title: "Final Project: Twitter 2020 Democratic Canidate Sentiment"
+author: "Forest Krueger and Victoria Owens"
+date: "12/09/19"
+output:
+  pdf_document:
+    toc: yes
+    keep_tex: true
+  html_document:
+    code_folding: show
+    df_print: kable
+    highlight: textmate
+    theme: simplex
+    toc: yes
+subtitle: R Markdown and LaTeX
+bibliography: rmarkdown.bib
+---
+
+I'm assuming you have installed all the packages, but here are the libaries
+
+'''{r,include=FALSE}
+library(rtweet)
+library(tidyverse)
+library(ggmap)
+library(dplyr)
+library(tm)
+library(tidytext)
+library(SentimentAnalysis)
+library(textdata)
+'''
+
+Set your working directory, you would need to change this
+
+'''{r,include=FALSE}
+setwd("C:\\Users\\Owner\\Documents\\MEGA\\University_of_Maryland\\SURV_727\\project")
+'''
+
+
+'''{r,include=FALSE}
+create_token(
+  app = "Twitter API String Tracker",
+  consumer_key = "rCVjASAtmlConQfTd1R6XjOTx",
+  consumer_secret = "ysYiFKXE2rdE2LOH2dp7Ow1tiiciNBR1Bz5uXMPKJghd1cLbkE",
+  access_token = "843482256803020809-K20s6YXiVp6DEohoK0AUo11n3mLlPXI",
+  access_secret = "zWaW1TE4OcUL8TcLqGNQxyo1ja68dmg2eIoU6lqQmOeMq"
+)
+'''
+
+**Please don't run this code chunk**, but this is how that data was obtained, instead just load the data in in the following code chunk
+
+'''{r,eval=FALSE}
+all_tweets <- search_tweets("@BernieSanders  OR @ewarren OR @KamalaHarris OR @PeteButtigieg OR @JoeBiden", n = 500000, verbose = TRUE, retryonratelimit = TRUE)
+
+save(all_tweets,file="all_tweets.Rda")
+'''
+
+Load in the data
+
+'''{r,include=FALSE}
+load("all_tweets.Rda")
+'''
+
+Use only the variables we want
+
+'''{r,include=FALSE}
+myvars <- c("text", "location", "created_at")
+all_tweets_cut <- all_tweets[myvars]
+'''
+
+Split tweets into canidates, states, and dates (only one per response)
+'''{r}
+all_tweets_cut$date<-substr(all_tweets_cut$created_at,1,10)
+
+all_tweets_cut$STATE<-ifelse(str_detect(all_tweets_cut$location," IA")=='TRUE' | str_detect(all_tweets$location,"Iowa")=='TRUE',"IA",
+                      ifelse(str_detect(all_tweets_cut$location," NH")=='TRUE' | str_detect(all_tweets$location,"New Hampshire")=='TRUE',"NH",
+                      ifelse(str_detect(all_tweets_cut$location," SC")=='TRUE' | str_detect(all_tweets$location,"South Carolina")=='TRUE',"SC",
+                      ifelse(str_detect(all_tweets_cut$location," NV")=='TRUE' | str_detect(all_tweets$location,"Nevada")=='TRUE',"NV",'.'))))
+
+all_tweets_cut$CANDIDATE<-ifelse(str_detect(all_tweets$text,"@BernieSanders")=='TRUE',"BS",
+                         ifelse(str_detect(all_tweets$text,"@ewarren")=='TRUE',"EW",
+                         ifelse(str_detect(all_tweets$text,"@KamalaHarris")=='TRUE',"KH",
+                         ifelse(str_detect(all_tweets$text,"@PeteButtigieg")=='TRUE',"PB",
+                         ifelse(str_detect(all_tweets$text,"@JoeBiden")=='TRUE',"JB",'.')))))
+'''
+
+filter method 1
+
+'''{r}
+tidy_all_tweets_cut<- all_tweets_cut %>%
+  select(text,STATE,CANDIDATE,date) %>%
+  unnest_tokens("word", text)
+
+data("stop_words")
+tidy_all_tweets_cut<-tidy_all_tweets_cut%>%
+  anti_join(stop_words)
+
+crap <- data.frame(word=c("t.co","joebiden","berniesanders","https","ewarren","petebuttigieg","bernie","joe","kamalaharris","elizabeth","warren","kamala","harris","biden","pete","buttigieg","sanders"))
+
+
+data("stop_words")
+tidy_all_tweets_cut<-tidy_all_tweets_cut%>%
+  anti_join(stop_words)
+
+tidy_all_tweets_cut<-tidy_all_tweets_cut%>%
+  anti_join(crap)
+
+save(tidy_all_tweets_cut,file="tidy_all_tweets_cut.Rda")
+'''
+
+Second Filter Method
+'''{r}                             
+all_tweets_cut$BS_IA<-(str_detect(all_tweets$location," IA") | str_detect(all_tweets$location,"Iowa")) & str_detect(all_tweets$text,"@BernieSanders")
+all_tweets_cut$BS_NH<-(str_detect(all_tweets$location," NH") | str_detect(all_tweets$location,"New Hampshire")) & str_detect(all_tweets$text,"@BernieSanders")
+all_tweets_cut$BS_SC<-(str_detect(all_tweets$location," SC") | str_detect(all_tweets$location,"South Carolina")) & str_detect(all_tweets$text,"@BernieSanders")
+all_tweets_cut$BS_NV<-(str_detect(all_tweets$location," NV") | str_detect(all_tweets$location,"Nevada")) & str_detect(all_tweets$text,"@BernieSanders")
+
+
+all_tweets_cut$EW_IA<-(str_detect(all_tweets$location," IA") | str_detect(all_tweets$location,"Iowa")) & str_detect(all_tweets$text,"@ewarren")
+all_tweets_cut$EW_NH<-(str_detect(all_tweets$location," NH") | str_detect(all_tweets$location,"New Hampshire")) & str_detect(all_tweets$text,"@ewarren")
+all_tweets_cut$EW_SC<-(str_detect(all_tweets$location," SC") | str_detect(all_tweets$location,"South Carolina")) & str_detect(all_tweets$text,"@ewarren")
+all_tweets_cut$EW_NV<-(str_detect(all_tweets$location," NV") | str_detect(all_tweets$location,"Nevada")) & str_detect(all_tweets$text,"@ewarren")
+
+all_tweets_cut$KH_IA<-(str_detect(all_tweets$location," IA") | str_detect(all_tweets$location,"Iowa")) & str_detect(all_tweets$text,"@KamalaHarris")
+all_tweets_cut$KH_NH<-(str_detect(all_tweets$location," NH") | str_detect(all_tweets$location,"New Hampshire")) & str_detect(all_tweets$text,"@KamalaHarris")
+all_tweets_cut$KH_SC<-(str_detect(all_tweets$location," SC") | str_detect(all_tweets$location,"South Carolina")) & str_detect(all_tweets$text,"@KamalaHarris")
+all_tweets_cut$KH_NV<-(str_detect(all_tweets$location," NV") | str_detect(all_tweets$location,"Nevada")) & str_detect(all_tweets$text,"@KamalaHarris")
+
+all_tweets_cut$PB_IA<-(str_detect(all_tweets$location," IA") | str_detect(all_tweets$location,"Iowa")) & str_detect(all_tweets$text,"@PeteButtigieg")
+all_tweets_cut$PB_NH<-(str_detect(all_tweets$location," NH") | str_detect(all_tweets$location,"New Hampshire")) & str_detect(all_tweets$text,"@PeteButtigieg")
+all_tweets_cut$PB_SC<-(str_detect(all_tweets$location," SC") | str_detect(all_tweets$location,"South Carolina")) & str_detect(all_tweets$text,"@PeteButtigieg")
+all_tweets_cut$PB_NV<-(str_detect(all_tweets$location," NV") | str_detect(all_tweets$location,"Nevada")) & str_detect(all_tweets$text,"@PeteButtigieg")
+
+all_tweets_cut$JB_IA<-(str_detect(all_tweets$location," IA") | str_detect(all_tweets$location,"Iowa")) & str_detect(all_tweets$text,"@JoeBiden")
+all_tweets_cut$JB_NH<-(str_detect(all_tweets$location," NH") | str_detect(all_tweets$location,"New Hampshire")) & str_detect(all_tweets$text,"@JoeBiden")
+all_tweets_cut$JB_SC<-(str_detect(all_tweets$location," SC") | str_detect(all_tweets$location,"South Carolina")) & str_detect(all_tweets$text,"@JoeBiden")
+all_tweets_cut$JB_NV<-(str_detect(all_tweets$location," NV") | str_detect(all_tweets$location,"Nevada")) & str_detect(all_tweets$text,"@JoeBiden")
+
+BS_IA<-all_tweets_cut %>% filter(BS_IA=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+BS_NH<-all_tweets_cut %>% filter(BS_NH=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+BS_SC<-all_tweets_cut %>% filter(BS_SC=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+BS_NV<-all_tweets_cut %>% filter(BS_NV=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+
+EW_IA<-all_tweets_cut %>% filter(EW_IA=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+EW_NH<-all_tweets_cut %>% filter(EW_NH=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+EW_SC<-all_tweets_cut %>% filter(EW_SC=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+EW_NV<-all_tweets_cut %>% filter(EW_NV=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+
+KH_IA<-all_tweets_cut %>% filter(KH_IA=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+KH_NH<-all_tweets_cut %>% filter(KH_NH=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+KH_SC<-all_tweets_cut %>% filter(KH_SC=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+KH_NV<-all_tweets_cut %>% filter(KH_NV=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+
+PB_IA<-all_tweets_cut %>% filter(PB_IA=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+PB_NH<-all_tweets_cut %>% filter(PB_NH=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+PB_SC<-all_tweets_cut %>% filter(PB_SC=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+PB_NV<-all_tweets_cut %>% filter(PB_NV=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+
+JB_IA<-all_tweets_cut %>% filter(JB_IA=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+JB_NH<-all_tweets_cut %>% filter(JB_NH=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+JB_SC<-all_tweets_cut %>% filter(JB_SC=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+JB_NV<-all_tweets_cut %>% filter(JB_NV=="TRUE") %>%
+mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>% select(txt_clean,location,created_at)
+'''
+
+Taking out stopwords and common nouns in tweets
+'''{r}
+crap <- c("t.co","joebiden","berniesanders","https","ewarren","petebuttigieg","bernie","joe","kamalaharris","elizabeth","warren","kamala","harris","biden","pete","buttigieg","sanders")
+
+data("stop_words")
+
+BS_IA_corpus <- Corpus(VectorSource(as.vector(BS_IA$txt_clean))) 
+BS_IA_corpus<-tm_map(BS_IA_corpus, content_transformer(tolower))
+BS_IA_corpus <- tm_map(BS_IA_corpus, stripWhitespace) 
+BS_IA_corpus <- tm_map(BS_IA_corpus, removeWords, c(stopwords("english"),crap))
+BS_IA_filter<-data.frame(text = sapply(BS_IA_corpus, as.character), stringsAsFactors = FALSE)
+'''
+Analyze sentiment
+
+'''{r}
+BS_IA_sent <- analyzeSentiment(BS_IA_filter$text)
+
+BS_IA_sent$Sentiment<-ifelse(BS_IA_sent$SentimentGI>0,"Pos",ifelse(BS_IA_sent$SentimentGI<0,"Neg","Neut"))
+'''
+Output information, repeat code chuck for each state+canidate
+'''{r}
+
+BS_IA_sent %>%
+group_by(Sentiment) %>%
+  summarise(word_count = n())
+
+
+print(paste0("mean sentiment: ",round(mean(BS_IA_sent$SentimentGI),3)))
+'''
+
+
+
+
+#make sure lang=en (english Tweet)
+#make sure correct geolocation #location
+#some will say City, ST , other will say State, USA
+#https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/intro-to-tweet-json
