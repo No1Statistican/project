@@ -1,8 +1,19 @@
 ---
-title: "Twitter Project"
-author: "FK, VO"
-date: "11/21/2019"
-output: html_document
+title: "Final Project: Twitter 2020 Democratic Canidate Sentiment"
+author: "Forest Krueger and Victoria Owens"
+date: "12/09/19"
+output:
+  pdf_document:
+    toc: yes
+    keep_tex: true
+  html_document:
+    code_folding: show
+    df_print: kable
+    highlight: textmate
+    theme: simplex
+    toc: yes
+subtitle: R Markdown and LaTeX
+bibliography: rmarkdown.bib
 ---
 
 ## 1. Introduction
@@ -18,137 +29,195 @@ Why this project is relevant. Goal. Overview of project.
 - sentiment analysis
 -lower costs, faster results
 
-## 2. Data: Datasets
+## 2. Setup
 
 Here we load the necessary libraries for preparation.
 
-```{r}
+```{r, include=FALSE}
 library(rtweet)
 library(tidyverse)
-library(tidytext)
-#library(ggmap)
+library(ggmap)
 library(dplyr)
-#library(tm)
-#library(tidytext)
+library(tm)
+library(tidytext)
+library(SentimentAnalysis)
+library(textdata)
 ```
 
-Data collected with code below. 
+In addition, the working directory will need to be set.
 
-```{r}
+```{r,include=FALSE}
+setwd("~/Desktop")
+```
 
+Finally, we use create_token() to prepare to collect the data from Twitter. 
+
+```{r,include=FALSE}
 create_token(
-  app = "Twitter Strings",
-  consumer_key = "b6vtg7fUkJuveYECwxR9sXgLu",
-  consumer_secret = "q8ltGT0Db8hMOrwpoF0CfywfTRmoveAuR55ujsGk8MEDRCPifa",
-  access_token = "1193934777465942019-QU3YwvkYfkQIkM6zliyrdUn88Y06sf",
-  access_secret = "p3J6D9h1ILuzFeSZC1OPeaZXsAYX4CxEIsoxaMEdMQiGl"
+  app = "Twitter API String Tracker",
+  consumer_key = "rCVjASAtmlConQfTd1R6XjOTx",
+  consumer_secret = "ysYiFKXE2rdE2LOH2dp7Ow1tiiciNBR1Bz5uXMPKJghd1cLbkE",
+  access_token = "843482256803020809-K20s6YXiVp6DEohoK0AUo11n3mLlPXI",
+  access_secret = "zWaW1TE4OcUL8TcLqGNQxyo1ja68dmg2eIoU6lqQmOeMq"
 )
-
-tweets <- search_tweets(lang="en",q="@BernieSanders OR @ewarren OR @KamalaHarris OR @PeteButtigieg OR @JoeBiden", n = 1000, retryonratelimit = T)
-
-tweets
 ```
 
-Data edited with code below to prepare for sentiment analysis.
+## 3. Data
+### Gathering
 
-1. remove irrelevant variables: keep: text, created_at, location, description, place_full_name
+The data was collected with the code below. This is included only to demonstrate how the data was gathered; the dataset can be loaded in the code chunk following after.
+
+```{r, eval=FALSE}
+all_tweets <- search_tweets("@BernieSanders  OR @ewarren OR @KamalaHarris OR @PeteButtigieg OR @JoeBiden", n = 500000, verbose = TRUE, retryonratelimit = TRUE)
+
+save(all_tweets,file="all_tweets.Rda")
+```
+
+The full dataset as it was collected from Twitter may be loaded below. This data can be downloaded here: https://drive.google.com/open?id=1vuRT8jAY0_Pds-mleHNS8nWsalRa2Z1R
+
+```{r,include=FALSE}
+load("all_tweets.Rda")
+```
+
+### Data Preparation
+
+For our purposes, we are only interested in three columns of the dataset:
+
+text: text content of the tweet
+location: Location of user according to the user's bio (not geotagging)
+created_at: The time and date that the tweet was created
+
+Below, we limit the data to include only these columns. In addition, the text column is cleaned in preparation for text analysis by removing unwanted characters. 
+
+```{r,include=FALSE}
+all_tweets_cut <-
+  all_tweets %>%
+  mutate(txt_clean = str_replace_all(text, "[^[:alnum:]]", " ")) %>%
+  select(txt_clean, location, created_at)
+```
+
+We also take a quick look at the data to ensure it's what we expect before continuing forward. 
 
 ```{r}
-tweets_tbl <- as_tibble(tweets)
-tweets_tbl
-
-tweets_small <- select(tweets_tbl, c(text, created_at, location, description, place_full_name))
-tweets_small
+head(all_tweets_cut, 20)
 ```
 
-2. separate into different datasets by candidate and state
+### Dataset Separation
+
+We want to examine information at the state- and candidate-level. For this purpose, we will create 20 separate datasets with unique combinations of candidates and states. 
+
+First, we create four datasets, one for each state of interest. Each dataset contains all of the records in which the location mentions a user's full state name ("Iowa") or abbreviation ("IA"). 
 
 ```{r}
 IA_filter <- c(" IA", "Iowa")
-tweets_IA <- filter (tweets_small, str_detect(location, paste(IA_filter, collapse="|")))
-tweets_IA
-
 NH_filter <- c(" NH", "New Hampshire")
-tweets_NH <- filter (tweets_small, str_detect(location, paste(NH_filter, collapse="|")))
-tweets_NH
-
 SC_filter <- c(" SC", "South Carolina")
-tweets_SC <- filter (tweets_small, str_detect(location, paste(SC_filter, collapse="|")))
-tweets_SC
-
 NV_filter <- c(" NV", "Nevada")
-tweets_NV <- filter (tweets_small, str_detect(location, paste(NV_filter, collapse="|")))
-tweets_NV
+
+tweets_IA <- filter (all_tweets_cut, str_detect(location, paste(IA_filter, collapse="|")))
+tweets_NH <- filter (all_tweets_cut, str_detect(location, paste(NH_filter, collapse="|")))
+tweets_SC <- filter (all_tweets_cut, str_detect(location, paste(SC_filter, collapse="|")))
+tweets_NV <- filter (all_tweets_cut, str_detect(location, paste(NV_filter, collapse="|")))
+
+
+head(tweets_IA, 20)
 ```
 
-Separate state datasets into candidate-state datasets.
+Then, we create the full 20 datasets by separating each state dataset by candidate. A record corresponds to a candidate if the candidate's Twitter handle is mentioned in the tweet ("text" column). Tweets which mention more than one candidate will be included in each dataset.
 
 ```{r}
-#I think it's easier to do it this way than add the account name directly into the filter functions in case we decide to add a second account into our data collection, then we only need to edit here
-
-BS_filter <- c("@BernieSanders")
-EW_filter <- c("@ewarren")
-KH_filter <- c("@KamalaHarris")
-PB_filter <- c("@PeteButtigieg")
-JB_filter <- c("@JoeBiden")
-
-#Probably there is a shorter way to do below with a loop but maybe it is clearer to see it this way as well
+#Twitter handles
+BS_filter <- c("BernieSanders")
+EW_filter <- c("ewarren")
+KH_filter <- c("KamalaHarris")
+PB_filter <- c("PeteButtigieg")
+JB_filter <- c("JoeBiden")
 
 #Iowa
-tweets_IA_BS <- filter(tweets_IA, str_detect(text, paste(BS_filter)))
-tweets_IA_EW <- filter(tweets_IA, str_detect(text, paste(EW_filter)))
-tweets_IA_KH <- filter(tweets_IA, str_detect(text, paste(KH_filter)))
-tweets_IA_PB <- filter(tweets_IA, str_detect(text, paste(PB_filter)))
-tweets_IA_JB <- filter(tweets_IA, str_detect(text, paste(JB_filter)))
+tweets_IA_BS <- filter(tweets_IA, str_detect(txt_clean, paste(BS_filter)))
+tweets_IA_EW <- filter(tweets_IA, str_detect(txt_clean, paste(EW_filter)))
+tweets_IA_KH <- filter(tweets_IA, str_detect(txt_clean, paste(KH_filter)))
+tweets_IA_PB <- filter(tweets_IA, str_detect(txt_clean, paste(PB_filter)))
+tweets_IA_JB <- filter(tweets_IA, str_detect(txt_clean, paste(JB_filter)))
 
 #New Hampshire
-tweets_NH_BS <- filter(tweets_NH, str_detect(text, paste(BS_filter)))
-tweets_NH_EW <- filter(tweets_NH, str_detect(text, paste(EW_filter)))
-tweets_NH_KH <- filter(tweets_NH, str_detect(text, paste(KH_filter)))
-tweets_NH_PB <- filter(tweets_NH, str_detect(text, paste(PB_filter)))
-tweets_NH_JB <- filter(tweets_NH, str_detect(text, paste(JB_filter)))
+tweets_NH_BS <- filter(tweets_NH, str_detect(txt_clean, paste(BS_filter)))
+tweets_NH_EW <- filter(tweets_NH, str_detect(txt_clean, paste(EW_filter)))
+tweets_NH_KH <- filter(tweets_NH, str_detect(txt_clean, paste(KH_filter)))
+tweets_NH_PB <- filter(tweets_NH, str_detect(txt_clean, paste(PB_filter)))
+tweets_NH_JB <- filter(tweets_NH, str_detect(txt_clean, paste(JB_filter)))
 
 #South Carolina
-tweets_SC_BS <- filter(tweets_SC, str_detect(text, paste(BS_filter)))
-tweets_SC_EW <- filter(tweets_SC, str_detect(text, paste(EW_filter)))
-tweets_SC_KH <- filter(tweets_SC, str_detect(text, paste(KH_filter)))
-tweets_SC_PB <- filter(tweets_SC, str_detect(text, paste(PB_filter)))
-tweets_SC_JB <- filter(tweets_SC, str_detect(text, paste(JB_filter)))
+tweets_SC_BS <- filter(tweets_SC, str_detect(txt_clean, paste(BS_filter)))
+tweets_SC_EW <- filter(tweets_SC, str_detect(txt_clean, paste(EW_filter)))
+tweets_SC_KH <- filter(tweets_SC, str_detect(txt_clean, paste(KH_filter)))
+tweets_SC_PB <- filter(tweets_SC, str_detect(txt_clean, paste(PB_filter)))
+tweets_SC_JB <- filter(tweets_SC, str_detect(txt_clean, paste(JB_filter)))
 
 #Nevada
-tweets_NV_BS <- filter(tweets_NV, str_detect(text, paste(BS_filter)))
-tweets_NV_EW <- filter(tweets_NV, str_detect(text, paste(EW_filter)))
-tweets_NV_KH <- filter(tweets_NV, str_detect(text, paste(KH_filter)))
-tweets_NV_PB <- filter(tweets_NV, str_detect(text, paste(PB_filter)))
-tweets_NV_JB <- filter(tweets_NV, str_detect(text, paste(JB_filter)))
-
-# Only keep below for testing reasons when we have a small n
-# Verify tweets' usefulness and correct state categorization
-
-tweets_IA_BS
-tweets_IA_EW
-tweets_IA_KH
-tweets_IA_PB
-tweets_IA_JB
-
-tweets_NH_BS
-tweets_NH_EW
-tweets_NH_KH
-tweets_NH_PB
-tweets_NH_JB
-
-tweets_SC_BS
-tweets_SC_EW
-tweets_SC_KH
-tweets_SC_PB
-tweets_SC_JB
-
-tweets_NV_BS
-tweets_NV_EW
-tweets_NV_KH
-tweets_NV_PB
-tweets_NV_JB
+tweets_NV_BS <- filter(tweets_NV, str_detect(txt_clean, paste(BS_filter)))
+tweets_NV_EW <- filter(tweets_NV, str_detect(txt_clean, paste(EW_filter)))
+tweets_NV_KH <- filter(tweets_NV, str_detect(txt_clean, paste(KH_filter)))
+tweets_NV_PB <- filter(tweets_NV, str_detect(txt_clean, paste(PB_filter)))
+tweets_NV_JB <- filter(tweets_NV, str_detect(txt_clean, paste(JB_filter)))
 ```
+
+## 4. Sentiment Analysis
+
+Before sentiment analysis can be performed, the text must be formatted properly. First, words to which no sentiment value will be assigned (common nouns in the tweets like "bernie" or stop words like "and") will be removed from the text. 
+
+```{r}
+#Problem words specific to our data
+remove <- c("t.co","joebiden","berniesanders","https","ewarren","petebuttigieg","bernie","joe","kamalaharris","elizabeth","warren","kamala","harris","biden","pete","buttigieg","sanders")
+
+#General stop words
+data("stop_words")
+
+#BS IA Text prep
+BS_IA_filter <- 
+  Corpus(VectorSource(as.vector(tweets_IA_BS$txt_clean))) %>%
+  tm_map(content_transformer(tolower)) %>%
+  tm_map(removeWords, c(stopwords("english"),remove)) %>%
+  data.frame(text = sapply(., as.character), stringsAsFactors = FALSE)
+
+data.frame(text = sapply(BS_IA_corpus, as.character), stringsAsFactors = FALSE)
+BS_IA_filter <- data.frame(text = sapply(BS_IA_corpus, as.character), stringsAsFactors = FALSE)
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 3. Sentiment analysis
@@ -157,35 +226,23 @@ How the data was sentiment-analysed. The data has to be formatted to be used for
 Separating each string of tweets into words;
 
 ```{r}
-
 #I'm playing around here with your code to see what we need
-
 words_IA_BS <- 
   tweets_IA_BS %>%
   select(created_at, text) %>%
   unnest_tokens("word", text)
-
-
 tidy_bernie_tweets<- bernie_tweets %>%
   select(created_at,text) %>%
   unnest_tokens("word", text)
-
-
 data("stop_words")
 tidy_bernie_tweets<-tidy_bernie_tweets %>%
   anti_join(stop_words)
-
 tidy_bernie_tweets %>%
   count(word) %>%
   arrange(desc(n))
-
 bernie_corpus <- Corpus(VectorSource(as.vector(bernie_tweets$text))) 
 bernie_corpus
-
 bernie_corpus <- tm_map(bernie_corpus, removeWords, stopwords("english"))
-
-
-
 sentiments <- analyzeSentiment(as.character(bernie_corpus))
 ```
 
@@ -194,7 +251,6 @@ sentiments <- analyzeSentiment(as.character(bernie_corpus))
 Outcomes and graphs.
 
 ```{r}
-
 ```
 
 ## 5. Discussion
