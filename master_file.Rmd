@@ -266,3 +266,26 @@ print(table(PB_NV_sent$Sentiment))
 print("Biden Nevada Sentiment:")
 print(table(JB_NV_sent$Sentiment))
 ```
+We can now graph these sentiments and see if there are 
+
+Now we will run a regression to see if we can predict the sentiments of the polls. First I must combine the datasets into ratios I can work with
+```{r}
+df_polls<-read.csv("polls.csv")
+df_twitter<-read.csv("twitter.csv")
+```
+```{r}
+df_polls$p_ratio<-df_polls$Positive/df_polls$Negative
+df_twitter$t_ratio<-df_twitter$Positive/df_twitter$Negative
+
+drops <- c("Positive", "Negative")
+df_polls<-df_polls[ , !(names(df_polls) %in% drops)]
+df_twitter<-df_twitter[ , !(names(df_twitter) %in% drops)]
+
+pred <- merge(x = df_polls, y = df_twitter, by=c("State","Candidate"))
+```
+Using regression and not supervised machine learning. Not nearly enough data. As you can see there is not good predictive power trying to directly predict the canidate sentiments, looking at something like the trends over longer periods would be more useful
+```{r}
+regress <- lm(p_ratio ~ t_ratio + State + Candidate, data=pred)
+summary(regress)
+```
+
