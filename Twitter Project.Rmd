@@ -18,16 +18,11 @@ bibliography: rmarkdown.bib
 
 ## 1. Introduction
 
-Why this project is relevant. Goal. Overview of project.
+In recent years, Twitter has become an object of interest in public opinion measurement. Prior studies have successfully used Twitter data in lieu of survey data to predict presidential job approval (1), consumer sentiment (1), and the Irish General Election results (2) to name a few. However, Twitter's usefulness as a predictor of public opinion still remains an object of debate as it performs inconsistently. 
 
-- candidates may need an idea of the trajectory of public opinion sooner than survey results can be returned
-- plan to compare twitter data to survey data 
-- prior efforts to do this
-- similar efforts but not the same
-- twitter data and surveys
-- political twitter data
-- sentiment analysis
--lower costs, faster results
+In this project, we intend to compare sentiment analysis on tweets with favorability polls on leading Democratic candidates Joe Biden, Bernie Sanders, Kamala Harris, Elizabeth Warren, and Pete Buttigieg in the early primary states of Iowa, Nevada, South Carolina, and New Hampshire. If tweets align with favorability polls, it may be feasible for candidates to use them as a source of information to understand more quickly and cheaply the state of public opinion than waiting for poll results. 
+
+Our plan is to collect the tweets over several days in late November 2019, analyse the tweets to obtain a sentiment score for each candidate within each state, and compare the distributions of positive-to-negative tweets with their opinion poll counterparts. We hypothesize a similarity in distributions between the two. 
 
 ## 2. Setup
 
@@ -67,6 +62,8 @@ create_token(
 
 The data was collected with the code below. This is included only to demonstrate how the data was gathered; the dataset can be loaded in the code chunk following after.
 
+The initial data included 500,000 tweets covering in a 3-day span between November 23 and November 25 that mentioned candidates' twitter handles. 
+
 ```{r, eval=FALSE}
 all_tweets <- search_tweets("@BernieSanders  OR @ewarren OR @KamalaHarris OR @PeteButtigieg OR @JoeBiden", n = 500000, verbose = TRUE, retryonratelimit = TRUE)
 
@@ -104,7 +101,7 @@ head(all_tweets_cut, 20)
 
 ### Dataset Separation
 
-We want to examine information at the state- and candidate-level. For this purpose, we will create 20 separate datasets with unique combinations of candidates and states. 
+We want to examine information at the state- and candidate-level. For this purpose, we will create 20 separate datasets with each combination of candidates and states. 
 
 First, we create four datasets, one for each state of interest. Each dataset contains all of the records in which the location mentions a user's full state name ("Iowa") or abbreviation ("IA"). 
 
@@ -164,7 +161,7 @@ tweets_NV_JB <- filter(tweets_NV, str_detect(txt_clean, paste(JB_filter)))
 
 ## 4. Sentiment Analysis
 
-Before sentiment analysis can be performed, the text must be formatted properly. First, words to which no sentiment value will be assigned (common nouns in the tweets like "bernie" or stop words like "and") will be removed from the text. 
+Before sentiment analysis can be performed, the text must be formatted properly. First, words to which no sentiment value will be assigned (common nouns in the tweets like "bernie" or common words like "and," as identified by the Harvard dictionary) will be removed from the text. 
 
 ```{r}
 #Problem words specific to our data
@@ -174,85 +171,388 @@ remove <- c("t.co","joebiden","berniesanders","https","ewarren","petebuttigieg",
 data("stop_words")
 
 #BS IA Text prep
-BS_IA_filter <- 
+BS_IA_corpus <- 
   Corpus(VectorSource(as.vector(tweets_IA_BS$txt_clean))) %>%
   tm_map(content_transformer(tolower)) %>%
-  tm_map(removeWords, c(stopwords("english"),remove)) %>%
-  data.frame(text = sapply(., as.character), stringsAsFactors = FALSE)
+  tm_map(removeWords, c(stopwords("english"),remove)) 
 
-data.frame(text = sapply(BS_IA_corpus, as.character), stringsAsFactors = FALSE)
 BS_IA_filter <- data.frame(text = sapply(BS_IA_corpus, as.character), stringsAsFactors = FALSE)
+BS_IA_filter
+```
+
+Now the data is formatted properly to begin the sentiment analysis. 
+
+The scores of each word in each tweet will be added together to achieve a tweet-level score that is either positive, negative, or neutral (0). 
+
+```{r}
+#Sentiment analysis for Sanders in Iowa
+BS_IA_sent <- analyzeSentiment(BS_IA_filter$text)
+BS_IA_sent$Sentiment<-ifelse(BS_IA_sent$SentimentGI>0,"Pos",ifelse(BS_IA_sent$SentimentGI<0,"Neg","Neut"))
+
+#Sentiment analysis for the rest of the states and candidates
+source(file="loop_4.R")
+```
+
+
+## 5. Results
+
+Below we include counts of tweets for each candidate/state by positive, negative, and neutral sentiment. *Didn't actually run these so correct the description if we need*
+
+```{r}
+print("Sanders Iowa Sentiment:")
+print(table(BS_IA_sent$Sentiment))
+```
+
+```{r}
+print("Warren Iowa Sentiment:")
+print(table(EW_IA_sent$Sentiment))
+```
+
+```{r}
+print("Harris Iowa Sentiment:")
+print(table(KH_IA_sent$Sentiment))
+```
+
+```{r}
+print("Buttigieg Iowa Sentiment:")
+print(table(PB_IA_sent$Sentiment))
+```
+
+```{r}
+print("Biden Iowa Sentiment:")
+print(table(JB_IA_sent$Sentiment))
+```
+
+```{r}
+print("Sanders New Hampshire Sentiment:")
+print(table(BS_NH_sent$Sentiment))
+```
+
+```{r}
+print("Warren New Hampshire Sentiment:")
+print(table(EW_NH_sent$Sentiment))
+```
+
+```{r}
+print("Harris New Hampshire Sentiment:")
+print(table(KH_NH_sent$Sentiment))
+```
+
+```{r}
+print("Buttigieg New Hampshire Sentiment:")
+print(table(PB_NH_sent$Sentiment))
+```
+
+```{r}
+print("Biden New Hampshire Sentiment:")
+print(table(JB_NH_sent$Sentiment))
+```
+
+```{r}
+print("Sanders South Carolina Sentiment:")
+print(table(BS_SC_sent$Sentiment))
+```
+
+```{r}
+print("Warren South Carolina Sentiment:")
+print(table(EW_SC_sent$Sentiment))
+```
+
+```{r}
+print("Harris South Carolina Sentiment:")
+print(table(KH_SC_sent$Sentiment))
+```
+
+```{r}
+print("Buttigieg South Carolina Sentiment:")
+print(table(PB_SC_sent$Sentiment))
+```
+
+```{r}
+print("Biden South Carolina Sentiment:")
+print(table(JB_SC_sent$Sentiment))
+```
+
+```{r}
+print("Sanders Nevada Sentiment:")
+print(table(BS_NV_sent$Sentiment))
+```
+
+```{r}
+print("Warren Nevada Sentiment:")
+print(table(EW_NV_sent$Sentiment))
+```
+
+```{r}
+print("Harris Nevada Sentiment:")
+print(table(KH_NV_sent$Sentiment))
+```
+
+```{r}
+print("Buttigieg Nevada Sentiment:")
+print(table(PB_NV_sent$Sentiment))
+```
+
+```{r}
+print("Biden Nevada Sentiment:")
+print(table(JB_NV_sent$Sentiment))
+```
+
+To visualise these results more easily, we plot two separate bar charts for each candidate: one for Twitter, and one for polls, with a bar for each state, divided into positive and negative favorability. 
+
+Below, we prepare the polls data for graphing. 
+
+```{r}
+pp <- read.csv("polls_prepped.csv")
+
+
+pp <-
+  pp %>%
+  mutate(Percent = round(Percent*100))
+pp
+```
+
+Now we graph the polls data for each candidate by state. 
+
+```{r}
+#Bernie Sanders
+BS <- 
+  pp %>%
+  filter(Candidate == "BS") 
+
+#text positioning
+BS <- ddply(BS, .(State), transform, pos = cumsum(Percent) - (0.5 * Percent))
+
+#create graph
+plot_BS <- ggplot() + 
+  geom_bar(aes(y = Percent, x = State, fill = Type), data = BS, stat="identity") +
+  scale_fill_manual(values=c("black", "blue")) + 
+  geom_text(data=BS, aes(x = State, y = pos, label = paste0(Percent,"%")), size=4, color="white") + 
+  ggtitle("Poll-Based Opinions of Bernie Sanders by State")
+
+plot_BS
+
+
+#Kamala Harris
+KH <- 
+  pp %>%
+  filter(Candidate == "KH") 
   
+#text positioning
+KH <- ddply(KH, .(State), transform, pos = cumsum(Percent) - (0.5 * Percent))
+
+#create graph
+plot_KH <- ggplot() + 
+  geom_bar(aes(y = Percent, x = State, fill = Type), data = KH,stat="identity") + 
+  scale_fill_manual(values=c("black", "blue")) + 
+  geom_text(data=KH, aes(x = State, y = pos, label = paste0(Percent,"%")), size=4, color="white") + 
+  ggtitle("Poll-Based Opinions of Kamala Harris by State")
+
+plot_KH
+
+
+#Elizabeth Warren
+EW <- 
+  pp %>%
+  filter(Candidate == "EW") 
+  
+#text positioning
+EW <- ddply(EW, .(State), transform, pos = cumsum(Percent) - (0.5 * Percent))
+
+#create graph
+plot_EW <- ggplot() + 
+  geom_bar(aes(y = Percent, x = State, fill = Type), data = EW, stat="identity") + 
+  scale_fill_manual(values=c("black", "blue")) + 
+  geom_text(data=EW, aes(x = State, y = pos, label = paste0(Percent,"%")), size=4, color="white") + 
+  ggtitle("Poll-Based Opinions of Elizabeth Warren by State")
+
+plot_EW
+
+
+#Pete Buttigieg
+PB <- 
+  pp %>%
+  filter(Candidate == "PB") 
+  
+#text positioning
+PB <- ddply(PB, .(State), transform, pos = cumsum(Percent) - (0.5 * Percent))
+
+#create graph
+plot_PB <- ggplot() + 
+  geom_bar(aes(y = Percent, x = State, fill = Type), data = PB, stat="identity") + 
+  scale_fill_manual(values=c("black", "blue")) + 
+  geom_text(data=PB, aes(x = State, y = pos, label = paste0(Percent,"%")), size=4, color="white") + 
+  ggtitle("Poll-Based Opinions of Pete Buttigieg by State")
+
+plot_PB
+
+
+#Joe Biden
+JB <- 
+  pp %>%
+  filter(Candidate == "JB") 
+  
+#text positioning
+JB <- ddply(JB, .(State), transform, pos = cumsum(Percent) - (0.5 * Percent))
+
+#create graph
+plot_JB <- ggplot() + 
+  geom_bar(aes(y = Percent, x = State, fill = Type), data = JB, stat="identity") + 
+  scale_fill_manual(values=c("black", "blue")) + 
+  geom_text(data=JB, aes(x = State, y = pos, label = paste0(Percent,"%")), size=4, color="white") + 
+  ggtitle("Poll-Based Opinions of Joe Biden by State")
+
+plot_JB
+
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## 3. Sentiment analysis
-
-How the data was sentiment-analysed. The data has to be formatted to be used for sentiment analysis. This involves: 
-Separating each string of tweets into words;
+Similarly, below we load the data for graphing the Twitter sentiments. 
 
 ```{r}
-#I'm playing around here with your code to see what we need
-words_IA_BS <- 
-  tweets_IA_BS %>%
-  select(created_at, text) %>%
-  unnest_tokens("word", text)
-tidy_bernie_tweets<- bernie_tweets %>%
-  select(created_at,text) %>%
-  unnest_tokens("word", text)
-data("stop_words")
-tidy_bernie_tweets<-tidy_bernie_tweets %>%
-  anti_join(stop_words)
-tidy_bernie_tweets %>%
-  count(word) %>%
-  arrange(desc(n))
-bernie_corpus <- Corpus(VectorSource(as.vector(bernie_tweets$text))) 
-bernie_corpus
-bernie_corpus <- tm_map(bernie_corpus, removeWords, stopwords("english"))
-sentiments <- analyzeSentiment(as.character(bernie_corpus))
+sp <- read.csv("sentiments_prepped.csv")
+sp <-
+  sp %>%
+  mutate(Percent = round(Percent*100))
+sp
 ```
 
-## 4. Results
-
-Outcomes and graphs.
+Now we graph the Twitter sentiments for each candidate by state.
 
 ```{r}
+#Bernie Sanders
+BS <- 
+  sp %>%
+  filter(Candidate == "BS") 
+  
+#text positioning
+BS <- ddply(BS, .(State), transform, pos = cumsum(Percent) - (0.5 * Percent))
+
+#create graph
+plot_BS <- ggplot() + 
+  geom_bar(aes(y = Percent, x = State, fill = Type), data = BS, stat="identity") + 
+  scale_fill_manual(values=c("black", "blue")) + 
+  geom_text(data=BS, aes(x = State, y = pos, label = paste0(Percent,"%")), size=4, color="white") + 
+  ggtitle("Twitter Sentiments of Bernie Sanders by State")
+
+plot_BS
+
+
+#Kamala Harris
+KH <- 
+  sp %>%
+  filter(Candidate == "KH") 
+  
+#text positioning
+KH <- ddply(KH, .(State), transform, pos = cumsum(Percent) - (0.5 * Percent))
+
+#create graph
+plot_KH <- ggplot() + 
+  geom_bar(aes(y = Percent, x = State, fill = Type), data = KH, stat="identity") + 
+  scale_fill_manual(values=c("black", "blue")) + 
+  geom_text(data=KH, aes(x = State, y = pos, label = paste0(Percent,"%")), size=4, color="white") + 
+  ggtitle("Twitter Sentiments of Kamala Harris by State")
+
+plot_KH
+
+
+#Elizabeth Warren
+EW <- 
+  sp %>%
+  filter(Candidate == "EW") 
+  
+#text positioning
+EW <- ddply(EW, .(State), transform, pos = cumsum(Percent) - (0.5 * Percent))
+
+#create graph
+plot_EW <- ggplot() + 
+  geom_bar(aes(y = Percent, x = State, fill = Type), data = EW, stat="identity") + 
+  scale_fill_manual(values=c("black", "blue")) + 
+  geom_text(data=EW, aes(x = State, y = pos, label = paste0(Percent,"%")), size=4, color="white") + 
+  ggtitle("Twitter Sentiments of Elizabeth Warren by State")
+
+plot_EW
+
+
+#Pete Buttigieg
+PB <- 
+  sp %>%
+  filter(Candidate == "PB") 
+  
+#text positioning
+PB <- ddply(PB, .(State), transform, pos = cumsum(Percent) - (0.5 * Percent))
+
+#create graph
+plot_PB <- ggplot() + 
+  geom_bar(aes(y = Percent, x = State, fill = Type), data = PB, stat="identity") + 
+  scale_fill_manual(values=c("black", "blue")) + 
+  geom_text(data=PB, aes(x = State, y = pos, label = paste0(Percent,"%")), size=4, color="white") + 
+  ggtitle("Twitter Sentiments of Pete Buttigieg by State")
+
+plot_PB
+
+
+#Joe Biden
+JB <- 
+  sp %>%
+  filter(Candidate == "JB") 
+  
+#text positioning
+JB <- ddply(JB, .(State), transform, pos = cumsum(Percent) - (0.5 * Percent))
+
+#create graph
+plot_JB <- ggplot() + 
+  geom_bar(aes(y = Percent, x = State, fill = Type), data = JB, stat="identity") + 
+  scale_fill_manual(values=c("black", "blue")) + 
+  geom_text(data=JB, aes(x = State, y = pos, label = paste0(Percent,"%")), size=4, color="white") + 
+  ggtitle("Twitter Sentiments of Joe Biden by State")
+
+plot_JB
 ```
 
-## 5. Discussion
+In addition, we run a regression in an attempt to see whether the Twitter sentiments correlate with poll outcomes and could be used for prediction. Below, the data is prepared for this purpose, deriving sentiment and poll favorability ratios for comparison. 
 
-Takeaways.
+```{r}
+df_polls<-read.csv("polls.csv")
+df_twitter<-read.csv("twitter.csv")
+```
+```{r}
+df_polls$p_ratio<-df_polls$Positive/df_polls$Negative
+df_twitter$t_ratio<-df_twitter$Positive/df_twitter$Negative
+drops <- c("Positive", "Negative")
+df_polls<-df_polls[ , !(names(df_polls) %in% drops)]
+df_twitter<-df_twitter[ , !(names(df_twitter) %in% drops)]
+pred <- merge(x = df_polls, y = df_twitter, by=c("State","Candidate"))
+```
+
+Using regression and not supervised machine learning. Not nearly enough data. As you can see there is not good predictive power trying to directly predict the canidate sentiments, looking at something like the trends over longer periods would be more useful
+
+```{r}
+regress <- lm(p_ratio ~ t_ratio + State + Candidate, data=pred)
+summary(regress)
+```
+
+## 6. Discussion
+
+Twitter results were not consistenly close to poll results for any candidate or in any state. In several cases (for example, Elizabeth Warren in South Carolina), Tweets were drastically more negative than poll results indicated. Visual inspection of the graphs is confirmed by the regression, which did not show that twitter results were useful for predicting poll results. Hence, we would not advocate attempting predictions using the methods above. However, there are many aspects of predictions using social media data that we did not explore here, such as attempting weighting the twitter data by user characteristics; accounting for retweets or likes; and measuring sentiment with different methods. *Can we attribute these ideas to someone?*
+
+In fact, the limitatations of this study are numerous, and using social media data for this type of application is still quite experimental. For this project, limitations divide mainly into general problems with political Tweets in general or problems with comparison to polls.   
+
+Analysing political Tweets as done in this project is challenging for multiple reasons. One problem with our approach is that we did not limit to unique users; one user could be included in the dataset multiple times, expressing the same sentiment repeatedly. It is likely there are many organizational Twitter accounts in the data that are likely to often tweet for or against a specific candidate. In fact, it has been shown that the top 10% of users produce 80% of Twitter content (4). In addition, attempting to assign a sentiment value to a political tweet is a complicated process if only using individual word values. Political comments are often sarcastic, which our approach is not sophisticated enough to account for. 
+
+When comparing to the polls, the demographics of Twitter users does not match that of the general population; they are known to be younger, more educated, wealthier, and more likely to identify as Democratic (4). Additionally, for many candidate-state combinations, sample sizes were lacking; the smallest size was only 75 tweets, while the largest only 889. Also, although the data was collected in a period close to when polls were conducted, there was not a perfect overlap. Tweets were collected from November 23, 2019 - November 25, 2019, while the most recently available polls were conducted at various points in each state between September 22 and November 9. Clearly, polls that reflect opinions at a different time period are not easily comparable. 
+
+However, it may be possible that Tweets are indicitive of the trajectory of public opinion, rather than its momentary state. Comparing the current polls to those immediately previous, Biden and Warren both fell, while Buttigieg rose and Sanders was constant. Interestingly, the Twitter sentiments compared to polls showed lower ratings for Biden and Warren, higher ratings for Buttigieg, and similar ratings for Sanders. This suggests there may be some correlation between the state of Twitter opinions and the shifting of public opnion. If true, this information would be useful for candidates to know whether they are likely to be falling or rising before the next poll results become available, particularly after debates. Data over a longer period of time to correspond to multiple poll results are needed to verify this hypothesis. This is the avenue of research we believe most promising from this point. 
+
+#We need a bibliography
+#Also need to add the polls here
+# (1) https://arxiv.org/pdf/1608.02024.pdf
+# (2) https://www.aclweb.org/anthology/W11-3702.pdf
+# (3) https://www.aaai.org/ocs/index.php/ICWSM/ICWSM11/paper/view/2816/3234
+# (4) https://www.pewresearch.org/internet/2019/04/24/sizing-up-twitter-users/
+
+
+
+#make sure lang=en (english Tweet)
+#make sure correct geolocation #location
+#some will say City, ST , other will say State, USA
+#https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/intro-to-tweet-json
