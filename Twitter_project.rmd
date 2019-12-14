@@ -186,7 +186,7 @@ source(file="loop_5.R")
 
 To visualise these results more easily, we plot two separate bar charts for each candidate: one for Twitter, and one for polls, with a bar for each state, divided into positive and negative favorability. 
 
-Below, we prepare the polls data for graphing. 
+Below, we prepare the polls data for graphing (8, 9, 10, 11). 
 
 ```{r}
 pp <- read.csv("polls_prepped.csv")
@@ -418,3 +418,7 @@ references:
 # (5) https://arxiv.org/pdf/1608.02024.pdf
 # (6) https://www.aclweb.org/anthology/W11-3702.pdf
 # (7) https://www.aaai.org/ocs/index.php/ICWSM/ICWSM11/paper/view/2816/3234
+# (8) https://cdn.cnn.com/cnn/2019/images/11/16/rel4a_ia.pdf 
+# (9) https://scholars.unh.edu/cgi/viewcontent.cgi?article=1567&context=survey_center_polls 
+# (10) http://cdn.cnn.com/cnn/2019/images/09/28/rel1_sc.pdf
+# (11) http://cdn.cnn.com/cnn/2019/images/09/28/rel1_nv.pdf
