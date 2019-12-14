@@ -13,7 +13,7 @@ highlight: textmate
 theme: simplex
 toc: yes
 subtitle: R Markdown and LaTeX
-bibliography: rmarkdown.bib
+bibliography: references.bib
 ---
   
 ## 1. Introduction
@@ -96,7 +96,7 @@ all_tweets_cut <-
 We also take a quick look at the data to ensure it's what we expect before continuing forward. 
 
 ```{r}
-head(all_tweets_cut, 20)
+head(all_tweets_cut, 5)
 ```
 
 ### Dataset Separation
@@ -116,7 +116,7 @@ tweets_IA <- filter (all_tweets_cut, str_detect(location, paste(IA_filter, colla
 
 source(file="loop_1.R")
 
-head(tweets_IA, 10)
+head(tweets_IA, 5)
 
 
 ```
@@ -193,7 +193,6 @@ pp <- read.csv("polls_prepped.csv")
 pp <-
   pp %>%
   mutate(Percent = round(Percent*100))
-pp
 ```
 
 Now we graph the polls data for each candidate by state. 
@@ -277,7 +276,6 @@ sp <- read.csv("sentiments_prepped.csv")
 sp <-
   sp %>%
   mutate(Percent = round(Percent*100))
-sp
 ```
 
 Now we graph the Twitter sentiments for each candidate by state.
@@ -379,46 +377,14 @@ summary(regress)
 
 ## 6. Discussion
 
-Twitter results were not consistenly close to poll results for any candidate or in any state. In several cases (for example, Elizabeth Warren in South Carolina), Tweets were drastically more negative than poll results indicated. Visual inspection of the graphs is confirmed by the regression, which did not show that twitter results were useful for predicting poll results. Hence, we would not advocate attempting predictions using the methods above. However, there are many aspects of predictions using social media data that we did not explore here, such as attempting weighting the twitter data by user characteristics; accounting for retweets or likes; and measuring sentiment with different methods. Tracking trends over longer periods of time would potentially be more useful, as Cody, Reagan, Dodds, and Danforth did with success previously (5). A model that compared a lag of time ahead would be ideal and our sentiments are not exactly at the same point in time. A different study examined the ratio between negitive sentiment and volume as well as the log transformation of this (6). We did not have enough volume to use this method either due to the limited amount of Twitter users that shared their location on their profile in each of these states.
+Twitter results were not consistenly close to poll results for any candidate or in any state. In several cases (for example, Elizabeth Warren in South Carolina), Tweets were drastically more negative than poll results indicated. Visual inspection of the graphs is confirmed by the regression, which did not show that twitter results were useful for predicting poll results. Hence, we would not advocate attempting predictions using the methods above. However, there are many aspects of predictions using social media data that we did not explore here, such as attempting weighting the twitter data by user characteristics; accounting for retweets or likes; and measuring sentiment with different methods. Tracking trends over longer periods of time would potentially be more useful, as Cody, Reagan, Dodds, and Danforth did with success previously [@Cody2016]. A model that compared a lag of time ahead would be ideal and our sentiments are not exactly at the same point in time. A different study examined the ratio between negitive sentiment and volume as well as the log transformation of this [@Bermingham2011]. We did not have enough volume to use this method either due to the limited amount of Twitter users that shared their location on their profile in each of these states.
 
 In fact, the limitatations of this study are numerous, and using social media data for this type of application is still quite experimental. For this project, limitations divide mainly into general problems with political Tweets in general or problems with comparison to polls.   
 
-Analysing political Tweets as done in this project is challenging for multiple reasons. One problem with our approach is that we did not limit to unique users; one user could be included in the dataset multiple times, expressing the same sentiment repeatedly. It is likely there are many organizational Twitter accounts in the data that are likely to often tweet for or against a specific candidate. In fact, it has been shown that the top 10% of users produce 80% of Twitter content (4). In addition, attempting to assign a sentiment value to a political tweet is a complicated process if only using individual word values. Political comments are often sarcastic, which our approach is not sophisticated enough to account for. 
+Analysing political Tweets as done in this project is challenging for multiple reasons. One problem with our approach is that we did not limit to unique users; one user could be included in the dataset multiple times, expressing the same sentiment repeatedly. It is likely there are many organizational Twitter accounts in the data that are likely to often tweet for or against a specific candidate. In fact, it has been shown that the top 10% of users produce 80% of Twitter content [@Wojcik2019]. In addition, attempting to assign a sentiment value to a political tweet is a complicated process if only using individual word values. Political comments are often sarcastic, which our approach is not sophisticated enough to account for. 
 
-When comparing to the polls, the demographics of Twitter users does not match that of the general population; they are known to be younger, more educated, wealthier, and more likely to identify as Democratic (4, 7). Additionally, for many candidate-state combinations, sample sizes were lacking; the smallest size was only 75 tweets, while the largest only 889. Also, although the data was collected in a period close to when polls were conducted, there was not a perfect overlap. Tweets were collected from November 23, 2019 - November 25, 2019, while the most recently available polls were conducted at various points in each state between September 22 and November 9. Clearly, polls that reflect opinions at a different time period are not easily comparable. 
+When comparing to the polls, the demographics of Twitter users does not match that of the general population; they are known to be younger, more educated, wealthier, and more likely to identify as Democratic [@Mislove2011]. Additionally, for many candidate-state combinations, sample sizes were lacking; the smallest size was only 75 tweets, while the largest only 889. Also, although the data was collected in a period close to when polls were conducted, there was not a perfect overlap. Tweets were collected from November 23, 2019 - November 25, 2019, while the most recently available polls were conducted at various points in each state between September 22 and November 9  [@Selzer2019] [@McKinley2019] [@CNN2019SC] [@CNN2019NV]. Clearly, polls that reflect opinions at a different time period are not easily comparable. 
 
 However, it may be possible that Tweets are indicitive of the trajectory of public opinion, rather than its momentary state. Comparing the current polls to those immediately previous, Biden and Warren both fell, while Buttigieg rose and Sanders was constant. Interestingly, the Twitter sentiments compared to polls showed lower ratings for Biden and Warren, higher ratings for Buttigieg, and similar ratings for Sanders. This suggests there may be some correlation between the state of Twitter opinions and the shifting of public opinion. If true, this information would be useful for candidates to know whether they are likely to be falling or rising before the next poll results become available, particularly after debates. Data over a longer period of time to correspond to multiple poll results are needed to verify this hypothesis. This is the avenue of research we believe most promising from this point. 
 
----
-references:
-- id: fenner2012a
-  title: One-click science marketing
-  author:
-  - family: Fenner
-    given: Martin
-  container-title: Nature Materials
-  volume: 11
-  URL: 'http://dx.doi.org/10.1038/nmat3283'
-  DOI: 10.1038/nmat3283
-  issue: 4
-  publisher: Nature Publishing Group
-  page: 261-263
-  type: article-journal
-  issued:
-    year: 2012
-    month: 3
----
-
-#We need a bibliography
-#Also need to add the polls here
-# (1) https://arxiv.org/pdf/1608.02024.pdf
-# (2) https://www.aclweb.org/anthology/W11-3702.pdf
-# (3) https://www.aaai.org/ocs/index.php/ICWSM/ICWSM11/paper/view/2816/3234
-# (4) https://www.pewresearch.org/internet/2019/04/24/sizing-up-twitter-users/
-# (5) https://arxiv.org/pdf/1608.02024.pdf
-# (6) https://www.aclweb.org/anthology/W11-3702.pdf
-# (7) https://www.aaai.org/ocs/index.php/ICWSM/ICWSM11/paper/view/2816/3234
-# (8) https://cdn.cnn.com/cnn/2019/images/11/16/rel4a_ia.pdf 
-# (9) https://scholars.unh.edu/cgi/viewcontent.cgi?article=1567&context=survey_center_polls 
-# (10) http://cdn.cnn.com/cnn/2019/images/09/28/rel1_sc.pdf
-# (11) http://cdn.cnn.com/cnn/2019/images/09/28/rel1_nv.pdf
+## 7. References
